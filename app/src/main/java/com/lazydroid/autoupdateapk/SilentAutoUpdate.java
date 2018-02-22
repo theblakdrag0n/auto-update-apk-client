@@ -54,7 +54,7 @@ public class SilentAutoUpdate extends AutoUpdateApk {
 	//
 	// ---------- everything below this line is private and does not belong to the public API ----------
 	//
-	protected void raise_notification() {
+	protected void raiseNotification() {
 		String update_file = preferences.getString(UPDATE_FILE, "");
 		boolean silent_update_failed = preferences.getBoolean(SILENT_FAILED, false);
 		if( update_file.length() > 0 && !silent_update_failed ) {
@@ -66,7 +66,7 @@ public class SilentAutoUpdate extends AutoUpdateApk {
 			execute_as_root(commands);	// not supposed to return if successful
 			preferences.edit().putBoolean(SILENT_FAILED, true).commit();	// avoid silent update loop
 		}
-		super.raise_notification();
+		super.raiseNotification();
 	}
 
 	// this is not guaranteed to work 100%, should be rewritten.
