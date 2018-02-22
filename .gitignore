@@ -46,5 +46,4 @@ Thumbs.db
 
 # External build
 .externalNativeBuild
-*.gradle
 import-summary.txt
