@@ -22,6 +22,25 @@ Basically you have to change only 2 (two!) lines in your project and include the
 
 AutoUpdateApk class is supposed to be instantiated in any of your Activities or, better yet, in Application subclass. After that you have to call the constructor and pass the application context (or activity context) as a parameter.
 
+For Android version Nougat (7.0) and above, you will additionally need to add a file provider to the manifest (in the application tag):
+    
+    <provider
+                android:name="android.support.v4.content.FileProvider"
+                android:authorities="${applicationId}.fileprovider"
+                android:exported="false"
+                android:grantUriPermissions="true">
+                <meta-data
+                    android:name="android.support.FILE_PROVIDER_PATHS"
+                    android:resource="@xml/provider_paths" />
+            </provider>
+
+and add a new resource res/xml/provider_paths:
+
+    <?xml version="1.0" encoding="utf-8"?>
+    <paths xmlns:android="http://schemas.android.com/apk/res/android">
+        <files-path name="apks" path="." />
+    </paths>
+        
 That is all!
 
 #### Where to download AutoUpdateApk

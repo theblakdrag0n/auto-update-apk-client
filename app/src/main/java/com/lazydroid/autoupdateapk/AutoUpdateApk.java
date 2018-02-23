@@ -60,7 +60,7 @@ import java.util.zip.Checksum;
 
 public class AutoUpdateApk extends Observable {
 
-    // this class is supposed to be instantiated in any of your activities or,
+    // This class is supposed to be instantiated in any of your activities or,
     // better yet, in Application subclass. Something along the lines of:
     //
     //	private AutoUpdateApk aua;	<-- you need to add this line of code
@@ -72,27 +72,35 @@ public class AutoUpdateApk extends Observable {
     //		aua = new AutoUpdateApk(getApplicationContext());	<-- and add this line too
     //
     public AutoUpdateApk(Context ctx) {
-        setupVariables(ctx);
+        setupVariables(ctx, false);
     }
 
-    // set icon for notification popup (default = application icon)
+    // By default, the available updates are shown as notification in the notification bar. If
+    // you want them to appear as popup instead, set showAsPopup to true. A popup could irritate the user,
+    // but is less likely ignored than a notification.
+    public AutoUpdateApk(Context ctx, boolean showAsPopup) {
+        setupVariables(ctx, showAsPopup);
+    }
+
+
+    // Set icon for notification popup (default = application icon)
     //
     public static void setIcon(int icon) {
         appIcon = icon;
     }
 
-    // set name to display in notification popup (default = application label)
+    // Set name to display in notification popup (default = application label)
     //
     public static void setName(String name) {
         appName = name;
     }
 
-    // set update interval (in milliseconds)
+    // Set update interval (in milliseconds)
     //
-    // there are nice constants in this file: MINUTES, HOURS, DAYS
+    // There are nice constants in this file: MINUTES, HOURS, DAYS
     // you may use them to specify update interval like: 5 * DAYS
     //
-    // please, don't specify update interval below 1 hour, this might
+    // Please, don't specify update interval below 1 hour, this might
     // be considered annoying behaviour and result in service suspension
     //
     public void setUpdateInterval(long interval) {
@@ -138,8 +146,8 @@ public class AutoUpdateApk extends Observable {
     }
 
     //
-// ---------- everything below this line is private and does not belong to the public API ----------
-//
+    // ---------- everything below this line is private and does not belong to the public API ----------
+    //
     protected final static String TAG = "AutoUpdateApk";
 
     private final static String ANDROID_PACKAGE = "application/vnd.android.package-archive";
@@ -175,6 +183,8 @@ public class AutoUpdateApk extends Observable {
     private static int NOTIFICATION_ID = 0xBEEF;
     private static long WAKEUP_INTERVAL = 15 * MINUTES;
 
+    public static boolean showUpdateAsPopup;
+
     private class ScheduleEntry {
         public int start;
         public int end;
@@ -196,15 +206,15 @@ public class AutoUpdateApk extends Observable {
         }
     };
 
-    private BroadcastReceiver connectivity_receiver = new BroadcastReceiver() {
+    private BroadcastReceiver connectivityReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             NetworkInfo currentNetworkInfo = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
 
             // do application-specific task(s) based on the current network state, such
             // as enabling queuing of HTTP requests when currentNetworkInfo is connected etc.
-            boolean not_mobile = !currentNetworkInfo.getTypeName().equalsIgnoreCase("MOBILE");
-            if (currentNetworkInfo.isConnected() && (mobile_updates || not_mobile)) {
+            boolean notMobile = !currentNetworkInfo.getTypeName().equalsIgnoreCase("MOBILE");
+            if (currentNetworkInfo.isConnected() && (mobile_updates || notMobile)) {
                 checkUpdates(false);
                 updateHandler.postDelayed(periodicUpdate, UPDATE_INTERVAL);
             } else {
@@ -214,8 +224,11 @@ public class AutoUpdateApk extends Observable {
     };
 
     @SuppressLint({"HardwareIds"})
-    private void setupVariables(Context ctx) {
+    private void setupVariables(Context ctx, boolean showAsPopup) {
         context = ctx;
+
+        // Set whether available update should be shown as popup or notification
+        showUpdateAsPopup = showAsPopup;
 
         packageName = context.getPackageName();
         preferences = context.getSharedPreferences(packageName + "_" + TAG, Context.MODE_PRIVATE);
@@ -249,7 +262,7 @@ public class AutoUpdateApk extends Observable {
         raiseNotification();
 
         if (haveInternetPermissions()) {
-            context.registerReceiver(connectivity_receiver,
+            context.registerReceiver(connectivityReceiver,
                     new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         }
     }
@@ -273,7 +286,7 @@ public class AutoUpdateApk extends Observable {
     }
 
     private static String getResponseText(InputStream inStream) {
-        // very nice trick from http://weblogs.java.net/blog/pat/archive/2004/10/stupid_scanner_1.html
+        // http://nosymbolfound.blogspot.de/2013/01/stupid-scanner-tricks.html
         return new Scanner(inStream).useDelimiter("\\A").next();
     }
 
@@ -308,7 +321,7 @@ public class AutoUpdateApk extends Observable {
                 conn.setDoInput(true);
                 conn.setDoOutput(true);
 
-                //send the POST out
+                // Send the POST out
                 PrintWriter pw = new PrintWriter(conn.getOutputStream());
                 pw.print(postParameters);
                 pw.close();
@@ -447,17 +460,25 @@ public class AutoUpdateApk extends Observable {
 
             PendingIntent contentIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
 
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
-            builder.setSmallIcon(appIcon);
-            builder.setTicker(appName + " update");
-            builder.setContentTitle(contentTitle);
-            builder.setContentText(contentText);
-            builder.setContentIntent(contentIntent);
-            builder.setWhen(System.currentTimeMillis());
-            builder.setAutoCancel(true);
-            builder.setOngoing(true);
+            if (showUpdateAsPopup) {
+                try {
+                    contentIntent.send();
+                } catch (PendingIntent.CanceledException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+                builder.setSmallIcon(appIcon);
+                builder.setTicker(appName + " update");
+                builder.setContentTitle(contentTitle);
+                builder.setContentText(contentText);
+                builder.setContentIntent(contentIntent);
+                builder.setWhen(System.currentTimeMillis());
+                builder.setAutoCancel(true);
+                builder.setOngoing(true);
 
-            nm.notify(NOTIFICATION_ID, builder.build());
+                nm.notify(NOTIFICATION_ID, builder.build());
+            }
         } else {
             //nm.cancel( NOTIFICATION_ID );	// tried this, but it just doesn't do the trick =(
             nm.cancelAll();
