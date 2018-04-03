@@ -22,6 +22,9 @@ Basically you have to change only 2 (two!) lines in your project and include the
 
 AutoUpdateApk class is supposed to be instantiated in any of your Activities or, better yet, in Application subclass. After that you have to call the constructor and pass the application context (or activity context) as a parameter.
 
+There are two ways to show available updates: as a notification (default) in the notification bar, or as a popup which fills the whole screen. The former is less obtrusive, but more likely to be ignored by users than the latter. The desired behaviour can be set in the contructor (to enable popups): 
+    aua = new AutoUpdateApk(getApplicationContext(), true); 
+
 For Android version Nougat (7.0) and above, you will additionally need to add a file provider to the manifest (in the application tag):
     
     <provider
