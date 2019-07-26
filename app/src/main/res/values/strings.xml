@@ -3,5 +3,6 @@
 
     <string name="hello">Hello World, AutoUpdateApkActivity v.1.1!</string>
     <string name="app_name">Auto Update .APK Client</string>
+    <string name="notification_example">Notification Example</string>
 
 </resources>
